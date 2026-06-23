@@ -67,7 +67,7 @@ pip install -r requirements.txt
 
 Create a .env file in the project root with the required values:
 
-`env
+```env
 GOOGLE_API_KEY=your_google_api_key
 GOOGLE_MODEL=gemini-2.5-flash
 TAVILY_API_KEY=your_tavily_api_key
@@ -76,7 +76,7 @@ LANGSMITH_TRACING=false
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 LANGSMITH_API_KEY=your_langsmith_api_key
 LANGSMITH_PROJECT=bappygpt
-`
+```
 
 > If you do not want to use LangSmith, you can leave those values unset or set LANGSMITH_TRACING=false.
 
@@ -94,7 +94,7 @@ http://127.0.0.1:8000
 
 ## Project Structure
 
-`	ext
+```	ext
 agent.py           # LangGraph agent setup and tool orchestration
 app.py             # FastAPI app and streaming chat endpoints
 database.py        # Conversation and memory persistence
@@ -103,7 +103,7 @@ tools.py           # Agent tools such as calculator, memory, web search, and RAG
 templates/         # HTML templates for the UI
 uploads/           # Uploaded documents
 chroma_db/         # Vector database storage
-`
+```
 
 ## Usage
 
@@ -136,9 +136,9 @@ Create a repository to store your Docker image and save the repository URI.
 
 Example:
 
-`	ext
+```	ext
 315865595366.dkr.ecr.us-east-1.amazonaws.com/bappygpt
-`
+```
 
 ### 4. Create an EC2 machine (Ubuntu)
 
