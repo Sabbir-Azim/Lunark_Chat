@@ -77,7 +77,8 @@ jobs:
             --restart always \
             -p 8080:8080 \
             -e GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" \
-            -e GOOGLE_MODEL="${{ secrets.GOOGLE_MODEL }}" \
+            -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            -e DEFAULT_CHAT_MODEL="${{ secrets.DEFAULT_CHAT_MODEL }}" \
             -e TAVILY_API_KEY="${{ secrets.TAVILY_API_KEY }}" \
             -e LANGSMITH_TRACING="${{ secrets.LANGSMITH_TRACING }}" \
             -e LANGSMITH_ENDPOINT="${{ secrets.LANGSMITH_ENDPOINT }}" \

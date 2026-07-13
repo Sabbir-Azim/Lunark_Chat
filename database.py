@@ -1,5 +1,7 @@
 from datetime import datetime
+import logging
 from pathlib import Path
+import sqlite3
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -15,6 +17,7 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
+logger = logging.getLogger(__name__)
 
 
 class Conversation(Base):
@@ -181,3 +184,74 @@ def search_memory(thread_id: str, query: str):
 
     finally:
         db.close()
+
+
+def delete_conversation(thread_id: str) -> bool:
+    """Delete one conversation and all data scoped to its thread."""
+    db = SessionLocal()
+
+    try:
+        conversation = (
+            db.query(Conversation)
+            .filter(Conversation.thread_id == thread_id)
+            .first()
+        )
+
+        if not conversation:
+            return False
+
+        db.query(ChatMessage).filter(ChatMessage.thread_id == thread_id).delete(
+            synchronize_session=False
+        )
+        db.query(LongTermMemory).filter(LongTermMemory.thread_id == thread_id).delete(
+            synchronize_session=False
+        )
+        db.delete(conversation)
+        db.commit()
+    finally:
+        db.close()
+
+    try:
+        delete_thread_checkpoints(thread_id)
+    except sqlite3.Error:
+        # The primary chat data is already deleted. A locked/corrupt checkpoint
+        # store should not make the API report the whole operation as failed.
+        logger.warning(
+            "Could not remove checkpoints for deleted thread %s",
+            thread_id,
+            exc_info=True,
+        )
+    return True
+
+
+def delete_thread_checkpoints(thread_id: str):
+    """Remove LangGraph checkpoint rows for a deleted conversation thread."""
+    checkpoint_path = Path("data/langgraph_checkpoints.sqlite")
+
+    if not checkpoint_path.exists():
+        return
+
+    with sqlite3.connect(checkpoint_path, timeout=10) as conn:
+        table_names = [
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        ]
+
+        for table_name in table_names:
+            safe_table_name = table_name.replace('"', '""')
+            columns = {
+                row[1]
+                for row in conn.execute(
+                    f'PRAGMA table_info("{safe_table_name}")'
+                ).fetchall()
+            }
+
+            if "thread_id" in columns:
+                conn.execute(
+                    f'DELETE FROM "{safe_table_name}" WHERE thread_id = ?',
+                    (thread_id,),
+                )
+
+        conn.commit()

@@ -23,12 +23,18 @@ from langchain_core.messages import (
     ToolMessage
 )
 
-from agent import get_agent
+from agent import (
+    DEFAULT_MODEL,
+    ModelConfigurationError,
+    get_agent,
+    get_model_catalog,
+)
 from database import (
     init_db,
     save_chat_message,
     get_chat_history,
     create_or_update_conversation,
+    delete_conversation,
     list_conversations)
 
 from rag import add_document_to_rag
@@ -53,6 +59,14 @@ async def home(request: Request):
         name="index.html",
         context={}
     )
+
+
+@app.get("/models")
+async def models():
+    return {
+        "default_model": DEFAULT_MODEL,
+        "models": get_model_catalog(),
+    }
 
 
 
@@ -87,6 +101,17 @@ async def history(thread_id: str):
             for msg in messages
         ]
     }
+
+
+@app.delete("/conversations/{thread_id}")
+async def remove_conversation(thread_id: str):
+    if not delete_conversation(thread_id):
+        return JSONResponse(
+            {"error": "Conversation not found."},
+            status_code=404,
+        )
+
+    return {"success": True}
 
 
 
@@ -226,7 +251,7 @@ async def chat_stream(request: Request):
 
     user_message = data.get("message", "")
     thread_id = data.get("thread_id", "default")
-    selected_model = data.get("model", "gemini-2.5-flash")
+    selected_model = data.get("model", DEFAULT_MODEL)
 
     if not user_message.strip():
         return JSONResponse(
@@ -234,7 +259,13 @@ async def chat_stream(request: Request):
             status_code=400
         )
 
-    agent = get_agent(selected_model)
+    try:
+        agent = get_agent(selected_model)
+    except ModelConfigurationError as exc:
+        return JSONResponse(
+            {"error": str(exc)},
+            status_code=400,
+        )
 
     create_or_update_conversation(thread_id, user_message)
     save_chat_message(thread_id, "user", user_message)
@@ -295,10 +326,14 @@ async def chat_stream(request: Request):
 
 
 if __name__ == "__main__":
-   
+    # Use a local-only development address by default. Port 8080 is commonly
+    # occupied by Apache; production/Docker supplies its own host and port.
+    host = os.getenv("APP_HOST", "127.0.0.1")
+    port = int(os.getenv("APP_PORT", "8001"))
+
     uvicorn.run(
         "app:app",
-        host="0.0.0.0",
-        port=8080,
+        host=host,
+        port=port,
         reload=True
     )

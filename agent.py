@@ -11,6 +11,7 @@ os.environ["SSL_CERT_FILE"] = certifi.where()
 os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -20,21 +21,72 @@ from tools import tools
 Path("data").mkdir(exist_ok=True)
 
 
-# Update default and allowed models to use Gemini 2.5
-DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+DEFAULT_MODEL = os.getenv(
+    "DEFAULT_CHAT_MODEL",
+    os.getenv("GOOGLE_MODEL", os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
+)
 
-ALLOWED_MODELS = {
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
-    "gemini-2.5-flash-lite", # Included the lite version if needed
-    "gemini-1.5-flash",      # Kept for fallback compatibility 
-    "gemini-1.5-pro"
+MODEL_CATALOG = {
+    "gemini-2.5-flash": {
+        "label": "Gemini 2.5 Flash",
+        "provider": "google",
+        "description": "Fast, capable everyday assistant",
+        "env_var": "GOOGLE_API_KEY",
+    },
+    "gemini-2.5-pro": {
+        "label": "Gemini 2.5 Pro",
+        "provider": "google",
+        "description": "Advanced reasoning and complex tasks",
+        "env_var": "GOOGLE_API_KEY",
+    },
+    "gemini-2.5-flash-lite": {
+        "label": "Gemini 2.5 Flash Lite",
+        "provider": "google",
+        "description": "Lightweight and cost efficient",
+        "env_var": "GOOGLE_API_KEY",
+    },
+    "gpt-5.4-mini": {
+        "label": "GPT-5.4 mini",
+        "provider": "openai",
+        "description": "Strong OpenAI model for agentic work",
+        "env_var": "OPENAI_API_KEY",
+    },
+    "chat-latest": {
+        "label": "ChatGPT Latest",
+        "provider": "openai",
+        "description": "Latest ChatGPT Instant model",
+        "env_var": "OPENAI_API_KEY",
+    },
 }
+
+ALLOWED_MODELS = set(MODEL_CATALOG)
+
+if DEFAULT_MODEL not in ALLOWED_MODELS:
+    DEFAULT_MODEL = "gemini-2.5-flash"
+
+
+class ModelConfigurationError(ValueError):
+    """Raised when the selected model provider is not configured."""
+
+
+def get_model_catalog() -> list[dict]:
+    """Return safe model metadata for the frontend (never API key values)."""
+    return [
+        {
+            "id": model_id,
+            "label": config["label"],
+            "provider": config["provider"],
+            "description": config["description"],
+            "available": bool(os.getenv(config["env_var"])),
+            "is_default": model_id == DEFAULT_MODEL,
+        }
+        for model_id, config in MODEL_CATALOG.items()
+    ]
 
 
 
 SYSTEM_PROMPT = """
-You are a helpful Agentic AI assistant named BappyGPT similar to ChatGPT.
+You are a helpful Agentic AI assistant named LunarkChat similar to ChatGPT.
 
 You can:
 1. Answer normal questions.
@@ -78,17 +130,32 @@ def normalize_model_name(model_name: str | None) -> str:
 
 def build_agent(model_name: str):
     """
-    Build one LangGraph agent for a selected Gemini model.
+    Build one LangGraph agent for the selected provider and model.
     """
 
     selected_model = normalize_model_name(model_name)
+    model_config = MODEL_CATALOG[selected_model]
+    required_env_var = model_config["env_var"]
 
-    # Initialize ChatGoogleGenerativeAI
-    llm = ChatGoogleGenerativeAI(
-        model=selected_model,
-        temperature=0.3,
-        streaming=True
-    )
+    if not os.getenv(required_env_var):
+        provider_name = model_config["provider"].title()
+        raise ModelConfigurationError(
+            f"{provider_name} is not configured. Add {required_env_var} to your .env file."
+        )
+
+    if model_config["provider"] == "google":
+        llm = ChatGoogleGenerativeAI(
+            model=selected_model,
+            temperature=0.3,
+            streaming=True,
+        )
+    elif model_config["provider"] == "openai":
+        llm = ChatOpenAI(
+            model=selected_model,
+            streaming=True,
+        )
+    else:
+        raise ModelConfigurationError("Unsupported model provider.")
 
     llm_with_tools = llm.bind_tools(tools)
 

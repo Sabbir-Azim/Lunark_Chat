@@ -1,315 +1,226 @@
-# BappyGPT
+# LunarkChat
 
-BappyGPT is an open-source **agentic AI chatbot** built with **Python, FastAPI, LangGraph, LangChain, Google Gemini, Tavily, ChromaDB, and SQLite**.
+LunarkChat is a multi-model agentic AI workspace built with FastAPI, LangGraph, and LangChain. It combines streaming chat, document question answering, web search, long-term memory, and persistent conversations in a responsive web interface.
 
-It supports real-time streaming chat, document uploads, retrieval-augmented generation (RAG), web search, conversation memory, and a simple web UI.
+## Highlights
 
----
+- Select models from Google Gemini and OpenAI.
+- Stream assistant responses in real time with Server-Sent Events (SSE).
+- Upload PDF, DOCX, TXT, Markdown, Python, and CSV files.
+- Search uploaded documents with retrieval-augmented generation (RAG).
+- Search the live web with Tavily when current information is needed.
+- Save and recall user information with thread-scoped long-term memory.
+- Resume previous conversations from the sidebar.
+- Permanently delete individual conversations from the sidebar.
+- Use the responsive dark interface on desktop and mobile.
+- Run locally, in Docker, or through the included AWS deployment workflow.
 
-## Features
+## Technology Stack
 
-* Chat with an AI agent powered by Google Gemini
-* Stream responses in real time
-* Upload documents such as PDF, DOCX, TXT, MD, PY, and CSV
-* Use uploaded files as context through RAG
-* Search the web with Tavily for current information
-* Store and recall conversation history
-* Simple FastAPI-based web interface
-* Docker-ready deployment
-* AWS CI/CD support using GitHub Actions, ECR, and EC2
+| Area | Technology |
+| --- | --- |
+| Backend | Python, FastAPI, Uvicorn |
+| Agent orchestration | LangGraph, LangChain |
+| LLM providers | Google Gemini, OpenAI |
+| Embeddings | Google Generative AI embeddings |
+| Vector storage | ChromaDB |
+| Application storage | SQLite, SQLAlchemy |
+| Web search | Tavily |
+| Frontend | Jinja2, HTML, CSS, JavaScript |
+| Deployment | Docker, GitHub Actions, Amazon ECR, EC2 |
 
----
+## Available Models
 
-## Project Overview
+| Provider | Display name | Model ID |
+| --- | --- | --- |
+| Google | Gemini 2.5 Flash | `gemini-2.5-flash` |
+| Google | Gemini 2.5 Pro | `gemini-2.5-pro` |
+| Google | Gemini 2.5 Flash Lite | `gemini-2.5-flash-lite` |
+| OpenAI | GPT-5.4 mini | `gpt-5.4-mini` |
+| OpenAI | ChatGPT Latest | `chat-latest` |
 
-This project combines:
-
-* **FastAPI** for the backend server and API endpoints
-* **Jinja2** for rendering the frontend UI
-* **LangGraph** for agent orchestration
-* **LangChain** for tools, messages, and RAG workflow
-* **Google Gemini** as the LLM provider
-* **Tavily** for web search
-* **ChromaDB** for vector search over uploaded documents
-* **SQLite** for conversation and persistence
-* **Docker** for containerized deployment
-
----
+Models remain visible in the selector when their provider is not configured, but they are disabled. API key values stay on the server and are never returned by the `/models` endpoint.
 
 ## Prerequisites
 
-Make sure you have the following installed:
+- Python 3.11
+- Git
+- At least one LLM provider API key
+- A Google API key for document embeddings when using file upload and RAG
+- A Tavily API key when using live web search
+- Docker and an AWS account only if you plan to deploy
 
-* Python 3.11
-* pip or conda
-* Git
-* Google API key for Gemini
-* Tavily API key for web search
+## Local Setup
 
-Optional for deployment:
-
-* Docker
-* AWS account
-* Amazon ECR repository
-* EC2 instance
-* GitHub Actions self-hosted runner
-
----
-
-## Getting Started
-
-### 1. Clone the repository
+### 1. Clone and enter the repository
 
 ```bash
 git clone https://github.com/entbappy/BappyGPT.git
-```
-
-### 2. Navigate to the project directory
-
-```bash
 cd BappyGPT
 ```
 
-### 3. Create a virtual environment
-
-Using conda:
+### 2. Create a virtual environment
 
 ```bash
-conda create -n bappygpt python=3.11 -y
+python -m venv .venv
 ```
 
-### 4. Activate the virtual environment
+Activate it on Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+Activate it on macOS or Linux:
 
 ```bash
-conda activate bappygpt
+source .venv/bin/activate
 ```
 
-### 5. Install dependencies
+### 3. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
----
+### 4. Configure environment variables
 
-## Environment Variables
-
-Create a `.env` file in the project root directory.
+Copy `.env.example` to `.env`, then replace the placeholder values you need.
 
 ```env
 GOOGLE_API_KEY=your_google_api_key
-GOOGLE_MODEL=gemini-2.5-flash
-
+OPENAI_API_KEY=your_openai_api_key
 TAVILY_API_KEY=your_tavily_api_key
 
+# Optional model and local-server defaults
+DEFAULT_CHAT_MODEL=gemini-2.5-flash
+APP_HOST=127.0.0.1
+APP_PORT=8001
+
+# Optional LangSmith tracing
 LANGSMITH_TRACING=false
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 LANGSMITH_API_KEY=your_langsmith_api_key
-LANGSMITH_PROJECT=bappygpt
+LANGSMITH_PROJECT=LunarkChat
 ```
 
-If you do not want to use LangSmith tracing, keep:
+You only need an OpenAI key if you want to use OpenAI models. Google configuration is also required by the current RAG embedding implementation.
 
-```env
-LANGSMITH_TRACING=false
-```
-
----
-
-## Run Locally
-
-Start the FastAPI app:
+### 5. Start the application
 
 ```bash
 python app.py
 ```
 
-The app will be available at:
+Open [http://127.0.0.1:8001](http://127.0.0.1:8001).
+
+## Using LunarkChat
+
+1. Select an available model from the model menu.
+2. Start a new conversation or resume one from the sidebar.
+3. Enter a message and press Enter to send it. Use Shift+Enter for a new line.
+4. Upload a supported document and ask questions about its contents.
+5. Ask for current information to let the agent use Tavily web search.
+6. Ask the assistant to remember a fact when you want it stored as long-term memory.
+7. Hover over a saved conversation and select the trash icon to delete it. The app asks for confirmation because deletion is permanent.
+
+Example prompts:
 
 ```text
-http://127.0.0.1:8080
+Summarize the document I uploaded and list the important action items.
 ```
 
----
+```text
+Search the web for the latest developments in AI agents.
+```
+
+```text
+Remember that I prefer concise technical explanations.
+```
+
+```text
+Calculate 125 * 48 / 6.
+```
+
+## API Endpoints
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/` | Render the chat interface |
+| `GET` | `/models` | Return model metadata and provider availability |
+| `GET` | `/conversations` | List saved conversations |
+| `GET` | `/history/{thread_id}` | Load messages from one conversation |
+| `DELETE` | `/conversations/{thread_id}` | Delete a conversation and its thread-scoped data |
+| `POST` | `/upload` | Ingest a document into the RAG collection |
+| `POST` | `/chat/stream` | Stream an agent response over SSE |
+
+## Data Storage
+
+LunarkChat stores local runtime data in three places:
+
+- `data/chatbot_memory.db` contains conversations, messages, and long-term memory.
+- `data/langgraph_checkpoints.sqlite` contains LangGraph thread checkpoints.
+- `chroma_db/` contains document embeddings and vector data.
+- `uploads/` contains uploaded source files.
+
+Deleting a conversation removes its database messages, thread-scoped memory, and LangGraph checkpoints. Uploaded files and their ChromaDB embeddings are not currently removed by the conversation delete action.
 
 ## Project Structure
 
 ```text
-BappyGPT/
-│
-├── app.py                  # FastAPI app and streaming chat endpoints
-├── agent.py                # LangGraph agent setup and tool orchestration
-├── database.py             # Conversation and persistence logic
-├── rag.py                  # Document ingestion and RAG logic
-├── tools.py                # Agent tools such as web search, memory, and RAG
-├── requirements.txt        # Python dependencies
-├── Dockerfile              # Docker image configuration
-├── .dockerignore           # Docker ignore rules
-│
-├── templates/
-│   └── index.html          # Frontend UI
-│
-├── uploads/                # Uploaded documents
-├── data/                   # SQLite database and app data
-└── chroma_db/              # ChromaDB vector database storage
+LunarkChat/
+|-- app.py                  # FastAPI routes and SSE streaming
+|-- agent.py                # Model catalog and LangGraph workflow
+|-- database.py             # Conversations, history, memory, and deletion
+|-- rag.py                  # File extraction, chunking, embeddings, retrieval
+|-- tools.py                # RAG, memory, calculator, and Tavily tools
+|-- requirements.txt        # Python dependencies
+|-- Dockerfile              # Production container definition
+|-- .env.example            # Environment variable template
+|-- templates/
+|   `-- index.html          # Responsive chat interface
+|-- data/                   # SQLite application data
+|-- chroma_db/              # Persistent vector store
+`-- uploads/                # Uploaded documents
 ```
 
----
+## Docker
 
-## Docker Deployment
-
-### 1. Build the Docker image
+Build the image:
 
 ```bash
-docker build -t bappygpt .
+docker build -t lunarkchat .
 ```
 
-### 2. Run the Docker container
+Run the container:
 
 ```bash
 docker run -d \
-  --name bappygpt \
-  --restart always \
+  --name lunarkchat \
+  --restart unless-stopped \
   -p 8080:8080 \
   --env-file .env \
-  bappygpt
+  lunarkchat
 ```
 
-The app will be available at:
+Open [http://localhost:8080](http://localhost:8080).
 
-```text
-http://localhost:8080
-```
+For persistent production data, mount volumes for `/app/data`, `/app/chroma_db`, and `/app/uploads`.
 
----
+## AWS CI/CD
 
-## AWS CI/CD Deployment with GitHub Actions
+The workflow at `.github/workflows/cicd.yaml` builds the Docker image, pushes it to Amazon ECR, and deploys it to an EC2 self-hosted runner when changes are pushed to `main`.
 
-This project can be deployed to AWS using:
-
-* GitHub Actions
-* Amazon ECR
-* Amazon EC2
-* Docker
-* GitHub self-hosted runner
-
----
-
-### 1. Create an IAM User
-
-Create an IAM user for deployment and attach the following policies:
-
-```text
-AmazonEC2ContainerRegistryFullAccess
-AmazonEC2FullAccess
-```
-
-You can also use a more restricted custom IAM policy for production.
-
----
-
-### 2. Create an ECR Repository
-
-Create an Amazon ECR repository.
-
-Example full ECR image URI:
-
-```text
-315865595366.dkr.ecr.us-east-1.amazonaws.com/bappygpt
-```
-
-For GitHub Secrets, only save the repository name:
-
-```text
-ECR_REPO=bappygpt
-```
-
-Do not save the full ECR URI as `ECR_REPO`.
-
----
-
-### 3. Create an EC2 Instance
-
-Create an Ubuntu EC2 instance.
-
-Recommended inbound security group rule:
-
-```text
-Type: Custom TCP
-Port: 8080
-Source: 0.0.0.0/0
-```
-
----
-
-### 4. Install Docker on EC2
-
-Connect to your EC2 instance and run:
-
-```bash
-sudo apt-get update -y
-sudo apt-get upgrade -y
-```
-
-Install Docker:
-
-```bash
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-```
-
-Add the Ubuntu user to the Docker group:
-
-```bash
-sudo usermod -aG docker ubuntu
-newgrp docker
-```
-
-Check Docker:
-
-```bash
-docker --version
-```
-
----
-
-### 5. Configure EC2 as a GitHub Self-Hosted Runner
-
-Go to your GitHub repository:
-
-```text
-Settings → Actions → Runners → New self-hosted runner
-```
-
-Select Linux and follow the commands shown by GitHub.
-
-After setup, start the runner:
-
-```bash
-./run.sh
-```
-
-For production, you can configure the runner as a service:
-
-```bash
-sudo ./svc.sh install
-sudo ./svc.sh start
-```
-
----
-
-## GitHub Secrets
-
-Add the following secrets in your GitHub repository:
+Configure these GitHub Actions secrets:
 
 ```text
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION
 ECR_REPO
-
 GOOGLE_API_KEY
-GOOGLE_MODEL
+OPENAI_API_KEY
+DEFAULT_CHAT_MODEL
 TAVILY_API_KEY
 LANGSMITH_TRACING
 LANGSMITH_ENDPOINT
@@ -317,99 +228,41 @@ LANGSMITH_API_KEY
 LANGSMITH_PROJECT
 ```
 
-Path:
+The EC2 security group must allow TCP port `8080` from the networks that should access the application.
 
-```text
-GitHub Repository → Settings → Secrets and variables → Actions → New repository secret
+## Troubleshooting
+
+### Windows `[WinError 10013]`
+
+The configured port is blocked, reserved, or already controlled by another Windows service. Start LunarkChat on another port:
+
+```powershell
+$env:APP_PORT="8002"
+python app.py
 ```
 
-Example:
+Then open `http://127.0.0.1:8002`. You can also set `APP_PORT=8002` permanently in `.env`.
 
-```text
-AWS_DEFAULT_REGION=us-east-1
-ECR_REPO=bappygpt
-GOOGLE_MODEL=gemini-2.5-flash
-LANGSMITH_TRACING=true
-LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-LANGSMITH_PROJECT=bappygpt
-```
+### A model is disabled
 
----
+Add the corresponding provider key to `.env` and restart the server. The application reads environment variables when the process starts.
 
-## GitHub Actions Workflow
+### Document search returns no content
 
-Create this file:
+Make sure the document was uploaded in the same conversation thread. RAG documents are filtered by `thread_id`, so another conversation cannot retrieve them.
 
-```text
-.github/workflows/cicd.yaml
-```
+## Security Notes
 
-This workflow will:
-
-1. Build your Docker image
-2. Push the image to Amazon ECR
-3. Pull the latest image on EC2
-4. Stop the old container
-5. Run the new container
-
----
-
-## Usage
-
-After running locally or deploying to AWS:
-
-1. Open the app in your browser.
-2. Start chatting with the AI assistant.
-3. Upload documents to use them as context.
-4. Ask questions about uploaded files.
-5. Ask current-information questions to trigger web search.
-6. Continue conversations with saved chat history.
-
----
-
-## Example Questions
-
-```text
-Summarize the uploaded PDF.
-```
-
-```text
-Search the web for the latest AI agent news.
-```
-
-```text
-Based on my uploaded document, what are the key points?
-```
-
-```text
-Calculate 125 * 48 / 6.
-```
-
----
-
-## Notes
-
-* Do not commit your `.env` file to GitHub.
-* Keep API keys inside GitHub Secrets for deployment.
-* For production, avoid using `reload=True` in Uvicorn.
-* Make sure port `8080` is open in your EC2 security group.
-* Rotate any API keys that were accidentally exposed publicly.
-
----
+- Never commit `.env` or real API keys.
+- Store production secrets in GitHub Actions or another secret manager.
+- Restrict EC2 security-group access for production deployments.
+- Uploaded documents and local databases may contain sensitive information; protect and back them up appropriately.
+- Rotate any credentials that have been exposed publicly.
 
 ## Contributing
 
-Contributions are welcome.
-
-To contribute:
-
-1. Fork the repository.
-2. Create a new branch.
-3. Make your changes.
-4. Submit a pull request.
-
----
+Contributions are welcome. Fork the repository, create a feature branch, make and test your changes, and submit a pull request.
 
 ## License
 
-This project is open source. Please check the repository license for usage terms.
+This project is open source. Review the repository license before distribution or commercial use.
