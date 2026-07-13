@@ -207,6 +207,14 @@ Open [http://localhost:8080](http://localhost:8080).
 
 For persistent production data, mount volumes for `/app/data`, `/app/chroma_db`, and `/app/uploads`.
 
+## Vercel Deployment
+
+Vercel automatically detects the FastAPI application exported as `app` in `app.py`. Connect this repository to a Vercel project and configure the provider environment variables before deploying.
+
+Vercel Functions expose a read-only application filesystem, so LunarkChat writes SQLite databases, LangGraph checkpoints, ChromaDB files, and uploaded documents beneath `/tmp/lunarkchat` when `VERCEL=1` is present. This prevents function-startup crashes, but `/tmp` is ephemeral and is not shared reliably between function instances.
+
+The Vercel deployment is therefore suitable for demonstrations and temporary sessions. For persistent production conversations and document retrieval, replace local storage with managed services such as PostgreSQL/Neon or Supabase, pgvector or another hosted vector database, and object storage such as Vercel Blob.
+
 ## AWS CI/CD
 
 The workflow at `.github/workflows/cicd.yaml` builds the Docker image, pushes it to Amazon ECR, and deploys it to an EC2 self-hosted runner when changes are pushed to `main`.

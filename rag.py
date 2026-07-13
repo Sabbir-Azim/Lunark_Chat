@@ -16,11 +16,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from pypdf import PdfReader
 import docx2txt
-
-
-Path("uploads").mkdir(exist_ok=True)
-Path("chroma_db").mkdir(exist_ok=True)
-
+from runtime_paths import CHROMA_DIR
 
 # Embeddings model
 embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
@@ -28,7 +24,7 @@ embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 vectorstore = Chroma(
     collection_name="agentic_chatbot_docs",
     embedding_function=embeddings,
-    persist_directory="chroma_db"
+    persist_directory=str(CHROMA_DIR)
 )
 
 

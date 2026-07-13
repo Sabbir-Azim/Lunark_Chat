@@ -1,6 +1,5 @@
 import os
 import sqlite3
-from pathlib import Path
 
 from dotenv import load_dotenv
 import certifi
@@ -16,9 +15,8 @@ from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.checkpoint.sqlite import SqliteSaver
+from runtime_paths import CHECKPOINT_DATABASE_PATH
 from tools import tools
-
-Path("data").mkdir(exist_ok=True)
 
 
 DEFAULT_MODEL = os.getenv(
@@ -180,7 +178,7 @@ def build_agent(model_name: str):
     workflow.add_edge("tools", "chatbot")
 
     conn = sqlite3.connect(
-        "data/langgraph_checkpoints.sqlite",
+        str(CHECKPOINT_DATABASE_PATH),
         check_same_thread=False
     )
 

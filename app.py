@@ -38,15 +38,13 @@ from database import (
     list_conversations)
 
 from rag import add_document_to_rag
+from runtime_paths import TEMPLATE_DIR, UPLOADS_DIR
 from tools import set_current_thread_id
 
 
 app = FastAPI()
 
-templates = Jinja2Templates(directory="templates")
-
-Path("uploads").mkdir(exist_ok=True)
-Path("data").mkdir(exist_ok=True)
+templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 
 
 init_db()
@@ -138,7 +136,7 @@ async def upload_document(
 
         file_id = str(uuid.uuid4())
         safe_filename = filename.replace(" ", "_")
-        file_path = f"uploads/{file_id}_{safe_filename}"
+        file_path = UPLOADS_DIR / f"{file_id}_{safe_filename}"
 
         with open(file_path, "wb") as f:
             f.write(await file.read())
@@ -146,7 +144,7 @@ async def upload_document(
         create_or_update_conversation(thread_id, "Uploaded document")
 
         result = add_document_to_rag(
-            file_path=file_path,
+            file_path=str(file_path),
             thread_id=thread_id
         )
 

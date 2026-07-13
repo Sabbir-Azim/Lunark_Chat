@@ -1,14 +1,16 @@
 from datetime import datetime
 import logging
-from pathlib import Path
 import sqlite3
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
+from runtime_paths import (
+    CHAT_DATABASE_PATH,
+    CHECKPOINT_DATABASE_PATH,
+    sqlite_url,
+)
 
-Path("data").mkdir(exist_ok=True)
-
-DATABASE_URL = "sqlite:///data/chatbot_memory.db"
+DATABASE_URL = sqlite_url(CHAT_DATABASE_PATH)
 
 engine = create_engine(
     DATABASE_URL,
@@ -226,7 +228,7 @@ def delete_conversation(thread_id: str) -> bool:
 
 def delete_thread_checkpoints(thread_id: str):
     """Remove LangGraph checkpoint rows for a deleted conversation thread."""
-    checkpoint_path = Path("data/langgraph_checkpoints.sqlite")
+    checkpoint_path = CHECKPOINT_DATABASE_PATH
 
     if not checkpoint_path.exists():
         return

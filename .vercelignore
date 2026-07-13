@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+data/
+chroma_db/
+uploads/
+*.excalidraw
+test.py
